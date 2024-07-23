@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -48,18 +50,22 @@ func isValidCardNumber(cardNumber string) bool {
 	return luhnCheck(cardNumber)
 }
 
-func main() {
-	cardNumbers := []string{
-		"4539 1488 0343 6467",
-		"6011 1111 1111 1117",
-		"1234 5678 9012 3456",
+func validateCardHandler(w http.ResponseWriter, r *http.Request) {
+	cardNumber := r.URL.Query().Get("cardNumber")
+	if cardNumber == "" {
+		http.Error(w, "cardNumber parameter is required", http.StatusBadRequest)
+		return
 	}
 
-	for _, cardNumber := range cardNumbers {
-		if isValidCardNumber(cardNumber) {
-			fmt.Printf("The card number %s is valid.\n", cardNumber)
-		} else {
-			fmt.Printf("The card number %s is invalid.\n", cardNumber)
-		}
-	}
+	valid := isValidCardNumber(cardNumber)
+	response := map[string]bool{"valid": valid}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func main() {
+	http.HandleFunc("/validateCard", validateCardHandler)
+	fmt.Println("Server is running on port 8080...")
+	http.ListenAndServe(":8080", nil)
 }
